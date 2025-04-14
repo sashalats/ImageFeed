@@ -1,0 +1,119 @@
+import UIKit
+
+final class SingleImageViewController: UIViewController, UIScrollViewDelegate {
+    
+    var image: UIImage? {
+        didSet {
+            guard isViewLoaded else { return }
+            updateImage()
+        }
+    }
+    
+    @IBOutlet weak var imageView: UIImageView!
+    @IBOutlet weak var scrollView: UIScrollView!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        scrollView.delegate = self
+        scrollView.minimumZoomScale = 0.1
+        scrollView.maximumZoomScale = 1.25
+        
+        updateImage()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        if let image = image {
+            rescaleAndCenterImageInScrollView(image: image)
+        }
+    }
+    
+    @IBAction private func didTapBackButton() {
+        dismiss(animated: true, completion: nil)
+    }
+    
+    @IBAction func didTapShareButton(_ sender: UIButton) {
+        guard let image else { return }
+        let share = UIActivityViewController(
+            activityItems: [image],
+            applicationActivities: nil
+        )
+        present(share, animated: true, completion: nil)
+    }
+    
+    func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+        return imageView
+    }
+    
+    func scrollViewDidZoom(_ scrollView: UIScrollView) {
+    }
+    
+    func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+        if let image = imageView.image {
+            centerImage(image: image, animated: true)
+        }
+    }
+    
+    private func updateImage() {
+        imageView.image = image
+        if let image = image {
+            imageView.translatesAutoresizingMaskIntoConstraints = true
+            imageView.frame.size = image.size
+            rescaleAndCenterImageInScrollView(image: image)
+        }
+    }
+    
+    private func rescaleAndCenterImageInScrollView(image: UIImage) {
+        scrollView.layoutIfNeeded()
+        
+        let visibleSize = scrollView.bounds.size
+        let imageSize = image.size
+        
+        let hScale = visibleSize.width / imageSize.width
+        let vScale = visibleSize.height / imageSize.height
+        let minScale = scrollView.minimumZoomScale
+        let maxScale = scrollView.maximumZoomScale
+        let scale = min(maxScale, max(minScale, max(hScale, vScale)))
+        
+        
+        scrollView.setZoomScale(scale, animated: false)
+        
+        imageView.frame.size = CGSize(width: imageSize.width * scale,
+                                      height: imageSize.height * scale)
+        
+        scrollView.contentSize = imageView.frame.size
+        
+        let offsetX = max(0, (imageView.frame.size.width - scrollView.bounds.size.width) / 2)
+        let offsetY = max(0, (imageView.frame.size.height - scrollView.bounds.size.height) / 2)
+        scrollView.setContentOffset(CGPoint(x: offsetX, y: offsetY), animated: false)
+        
+        centerImage(image: image, animated: false)
+        
+    }
+    
+    private func centerImage(image: UIImage, animated: Bool) {
+        let imageViewSize = imageView.frame.size
+        let scrollViewSize = scrollView.bounds.size
+        
+        let verticalInset = max(0, (scrollViewSize.height - imageViewSize.height) / 2)
+        let horizontalInset = max(0, (scrollViewSize.width - imageViewSize.width) / 2)
+        
+        let insets = UIEdgeInsets(
+            top: verticalInset,
+            left: horizontalInset,
+            bottom: verticalInset,
+            right: horizontalInset
+        )
+        
+        if animated {
+            UIView.animate(withDuration: 0.3) {
+                self.scrollView.contentInset = insets
+                self.scrollView.layoutIfNeeded()
+            }
+        } else {
+            scrollView.contentInset = insets
+        }
+    }
+}

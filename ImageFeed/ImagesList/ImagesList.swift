@@ -3,7 +3,28 @@ import UIKit
 final class ImagesList: UIViewController {
     @IBOutlet private var tableView: UITableView!
     
+    private let showSingleImageSegueIdentifier = "ShowSingleImage" //новое
+    
     private let photosName: [String] = Array(0..<20).map{ "\($0)" }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "ShowSingleImage" {
+            guard
+                let viewController = segue.destination as? SingleImageViewController, // 2
+                let indexPath = sender as? IndexPath
+            else {
+                assertionFailure("Invalid segue destination")
+                return
+            }
+            
+            let image = UIImage(named: photosName[indexPath.row])
+            viewController.image = image
+            
+        } else {
+            super.prepare(for: segue, sender: sender)
+        }
+    }
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -54,7 +75,9 @@ extension ImagesList: UITableViewDataSource {
 }
 
 extension ImagesList: UITableViewDelegate {
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {}
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        performSegue(withIdentifier: "ShowSingleImage", sender: indexPath)
+    }
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         guard let image = UIImage(named: photosName[indexPath.row]) else {
             return 0
@@ -68,3 +91,4 @@ extension ImagesList: UITableViewDelegate {
         return cellHeight
     }
 }
+
