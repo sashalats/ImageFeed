@@ -11,16 +11,8 @@ class AuthViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-//        configureBackButton()
         
     }
-    
-//    private func configureBackButton() {
-//        navigationController?.navigationBar.backIndicatorImage = UIImage(named: "naw_back_button_white")
-//        navigationController?.navigationBar.backIndicatorTransitionMaskImage = UIImage(named: "naw_back_button_white")
-//        navigationItem.backBarButtonItem = UIBarButtonItem(title: "", style: .plain, target: nil, action: nil)
-//        navigationItem.backBarButtonItem?.tintColor = UIColor(named: "YP Black")
-//    }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == showWebViewSegueIdentifier {
