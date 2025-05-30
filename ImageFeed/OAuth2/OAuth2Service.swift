@@ -1,19 +1,5 @@
 import Foundation
 
-struct OAuthTokenResponseBody: Decodable {
-    let accessToken: String
-    let tokenType: String
-    let scope: String
-    let createdAt: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case tokenType = "token_type"
-        case scope
-        case createdAt = "created_at"
-    }
-}
-
 enum OAuth2Error: Error {
     case invalidRequest
 }
@@ -22,13 +8,14 @@ final class OAuth2Service {
     static let shared = OAuth2Service()
     private init() {}
     
-    private let tokenStorage = OAuth2TokenStorage()
+    private let oauth2TokenStorage = OAuth2TokenStorage.shared
+    private let decoder = JSONDecoder()
     
     func makeOAuthTokenRequest(code: String) -> URLRequest? {
-        guard let url = URL(string: "https://unsplash.com/oauth/token") else { return nil }
-        
+        guard let url = URL(string: Constants.unsplashTokenURLString)
+        else { return nil }
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = HTTPMethod.post.rawValue
         
         let parameters = [
             "client_id": Constants.accessKey,
@@ -49,7 +36,7 @@ final class OAuth2Service {
     
     func fetchOAuthToken(code: String, completion: @escaping (Result<String, Error>) -> Void) {
         guard let request = makeOAuthTokenRequest(code: code) else {
-            print("❌ Ошибка создания URLRequest")
+            print("Ошибка создания URLRequest")
             completion(.failure(OAuth2Error.invalidRequest))
             return
         }
@@ -58,23 +45,20 @@ final class OAuth2Service {
             switch result {
             case .success(let data):
                 do {
-                    let response = try JSONDecoder().decode(OAuthTokenResponseBody.self, from: data)
-                    self.tokenStorage.token = response.accessToken
-                    DispatchQueue.main.async {
-                        completion(.success(response.accessToken))
-                    }
+                    let response = try self.decoder.decode(OAuthTokenResponseBody.self, from: data)
+                    self.oauth2TokenStorage.token = response.accessToken
+                    completion(.success(response.accessToken))
                 } catch {
-                    print("❌ Ошибка декодирования ответа: \(error)")
+                    print("Ошибка декодирования ответа: \(error)")
                     completion(.failure(error))
                 }
                 
             case .failure(let error):
-                print("❌ Сетевая ошибка: \(error)")
+                print("Сетевая ошибка: \(error)")
                 completion(.failure(error))
             }
         }
         
         task.resume()
     }
-    
 }

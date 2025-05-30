@@ -1,8 +1,6 @@
 import UIKit
 import WebKit
 
-fileprivate let UnsplashAuthorizeURLString = "https://unsplash.com/oauth/authorize"
-
 protocol WebViewViewControllerDelegate: AnyObject {
     func webViewViewController(_ vc: WebViewViewController, didAuthenticateWithCode code: String)
     func webViewViewControllerDidCancel(_ vc: WebViewViewController)
@@ -12,6 +10,10 @@ final class WebViewViewController:UIViewController {
     
     @IBOutlet private var webView: WKWebView!
     @IBOutlet private var progressView: UIProgressView!
+    
+    private enum progressConstants {
+        static let progressCompletionThreshold: CGFloat = 0.0001
+    }
     
     weak var delegate: WebViewViewControllerDelegate?
     
@@ -49,16 +51,17 @@ final class WebViewViewController:UIViewController {
         change: [NSKeyValueChangeKey : Any]?,
         context: UnsafeMutableRawPointer?
     ) {
-        if keyPath == #keyPath(WKWebView.estimatedProgress) {
-            updateProgress()
-        } else {
+        guard keyPath == #keyPath(WKWebView.estimatedProgress) else {
             super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
+            return
         }
+        
+        updateProgress()
     }
     
     private func updateProgress() {
         progressView.progress = Float(webView.estimatedProgress)
-        progressView.isHidden = fabs(webView.estimatedProgress - 1.0) <= 0.0001
+        progressView.isHidden = fabs(webView.estimatedProgress - 1.0) <= progressConstants.progressCompletionThreshold
     }
     
     private func configureBackButton() {
@@ -78,7 +81,8 @@ final class WebViewViewController:UIViewController {
     private func loadAuthRequest() {
         webView.navigationDelegate = self
         
-        guard var urlComponents = URLComponents(string: UnsplashAuthorizeURLString) else {
+        guard var urlComponents = URLComponents(string: Constants.unsplashAuthorizeURLString) else {
+            print("Не удалость создать URLComponents из строки: \(Constants.unsplashAuthorizeURLString)")
             return
         }
         
@@ -90,14 +94,15 @@ final class WebViewViewController:UIViewController {
         ]
         
         guard let url = urlComponents.url else {
+            print("Не удалось получить URL из URLComponents: \(urlComponents)")
             return
         }
-        print("Final URL", url.absoluteString)
+        
+        print("Финальный URL", url.absoluteString)
+        
         let request = URLRequest(url: url)
         webView.load(request)
     }
-    
-    
 }
 
 extension WebViewViewController: WKNavigationDelegate {

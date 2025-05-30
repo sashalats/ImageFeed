@@ -18,15 +18,17 @@ extension URLSession {
         }
         
         let task = dataTask(with: request, completionHandler: { data, response, error in
-            if let data = data, let response = response, let statusCode = (response as? HTTPURLResponse)?.statusCode {
-                if 200 ..< 300 ~= statusCode {
-                    fulfillCompletionOnTheMainThread(.success(data))
-                } else {
-                    fulfillCompletionOnTheMainThread(.failure(NetworkError.httpStatusCode(statusCode)))
-                }
-            } else if let error = error {
+            switch (data, response, error) {
+            case let (data?, response as HTTPURLResponse, _) where 200..<300 ~= response.statusCode:
+                fulfillCompletionOnTheMainThread(.success(data))
+            case let (_, response as HTTPURLResponse, _):
+                print("Ошибка от Unsplash: HTTP статус \(response.statusCode)")
+                fulfillCompletionOnTheMainThread(.failure(NetworkError.httpStatusCode(response.statusCode)))
+            case let (_, _, error?):
+                print("Ошибка при запросе:", error)
                 fulfillCompletionOnTheMainThread(.failure(NetworkError.urlRequestError(error)))
-            } else {
+            default:
+                print("Ошибка: ни data, ни error не получено")
                 fulfillCompletionOnTheMainThread(.failure(NetworkError.urlSessionError))
             }
         })
