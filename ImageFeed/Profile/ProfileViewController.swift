@@ -21,7 +21,7 @@ final class ProfileViewController: UIViewController {
     }
     
     private func setupAvatar() {
-        let avatarImage = UIImage(named: "Avatar") ?? UIImage(systemName: "person.crop.circle.fill")!
+        let avatarImage = UIImage(named: "Avatar") ?? UIImage(systemName: "person.crop.circle.fill") ?? UIImage()
         avatarImageView.image = avatarImage
         avatarImageView.contentMode = .scaleAspectFit
         avatarImageView.layer.cornerRadius = 35
