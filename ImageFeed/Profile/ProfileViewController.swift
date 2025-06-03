@@ -1,4 +1,5 @@
 import UIKit
+import Kingfisher
 
 final class ProfileViewController: UIViewController {
     
@@ -8,6 +9,7 @@ final class ProfileViewController: UIViewController {
     private let usernameLabel = UILabel()
     private let statusLabel = UILabel()
     private let logoutButton = UIButton()
+    private var profileImageServiceObserver: NSObjectProtocol?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -18,6 +20,22 @@ final class ProfileViewController: UIViewController {
         setupUsernameLabel()
         setupStatusLabel()
         setupLogoutButton()
+        
+        if let profile = ProfileService.shared.profile {
+            updateProfileDetails(profile: profile)
+        }
+        
+        
+        profileImageServiceObserver = NotificationCenter.default.addObserver(
+            forName: ProfileImageService.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("Notification received")
+            self?.updateAvatar()
+        }
+        
+        updateAvatar()
     }
     
     private func setupAvatar() {
@@ -38,7 +56,6 @@ final class ProfileViewController: UIViewController {
     }
     
     private func setupNameLabel() {
-        nameLabel.text = "Екатерина Новикова"
         nameLabel.font = UIFont.boldSystemFont(ofSize: 23)
         nameLabel.textColor = .ypWhite
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -51,7 +68,6 @@ final class ProfileViewController: UIViewController {
     }
     
     private func setupUsernameLabel() {
-        usernameLabel.text = "@ekaterina_nov"
         usernameLabel.font = UIFont.systemFont(ofSize: 13)
         usernameLabel.textColor = .ypGray
         usernameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -64,7 +80,6 @@ final class ProfileViewController: UIViewController {
     }
     
     private func setupStatusLabel() {
-        statusLabel.text = "Hello, world"
         statusLabel.font = UIFont.systemFont(ofSize: 13)
         statusLabel.textColor = .ypWhite
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -98,4 +113,25 @@ final class ProfileViewController: UIViewController {
         label?.removeFromSuperview()
         label = nil
     }
+    
+    private func updateAvatar() {
+        print("updateAvatar() вызван")
+        guard
+            let profileImageURL = ProfileImageService.shared.avatarURL,
+            let url = URL(string: profileImageURL)
+        else {
+            print("URL не найден или некорректный")
+            return
+        }
+        print("URL для аватара:", url)
+        avatarImageView.kf.setImage(with: url)
+    }
+    
+    private func updateProfileDetails(profile: Profile) {
+        nameLabel.text = profile.name
+        usernameLabel.text = profile.loginName
+        statusLabel.text = profile.bio
+    }
 }
+
+
