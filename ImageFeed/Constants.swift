@@ -13,4 +13,8 @@ enum Constants {
     }()
     static let unsplashAuthorizeURLString = "https://unsplash.com/oauth/authorize"
     static let unsplashTokenURLString = "https://unsplash.com/oauth/token"
+    static func userProfileURL(for username: String) -> URL? {
+        guard !username.isEmpty else { return nil }
+        return URL(string: "https://api.unsplash.com/users/\(username)")
+    }
 }

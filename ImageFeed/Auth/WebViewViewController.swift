@@ -16,6 +16,7 @@ final class WebViewViewController:UIViewController {
     }
     
     weak var delegate: WebViewViewControllerDelegate?
+    private var estimatedProgressObservation: NSKeyValueObservation?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,6 +24,14 @@ final class WebViewViewController:UIViewController {
         webView.navigationDelegate = self
         navigationController?.navigationBar.tintColor = UIColor(named: "YP Black")
         webView.scrollView.keyboardDismissMode = .interactive
+        
+        estimatedProgressObservation = webView.observe(
+            \.estimatedProgress,
+             options: [],
+             changeHandler: { [weak self] _, _ in
+                 guard let self = self else { return }
+                 self.updateProgress()
+             })
         
         configureBackButton()
         loadAuthRequest()
