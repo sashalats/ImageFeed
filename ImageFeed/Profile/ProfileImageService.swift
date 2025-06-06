@@ -9,22 +9,10 @@ final class ProfileImageService {
     private(set) var avatarURL: String?
     static let didChangeNotification = Notification.Name(rawValue: "ProfileImageProviderDidChange")
 
-    struct UserResult: Codable {
-        let profileImage: ProfileImage
-
-        enum CodingKeys: String, CodingKey {
-            case profileImage = "profile_image"
-        }
-
-        struct ProfileImage: Codable {
-            let small: String
-        }
-    }
-
     func fetchProfileImageURL(username: String, _ completion: @escaping (Result<String, Error>) -> Void) {
         guard
             let token = oauth2TokenStorage.token,
-            let url = URL(string: "https://api.unsplash.com/users/\(username)")
+            let url = Constants.userProfileURL(for: username)
         else {
             print("[ProfileImageService]: Invalid request - невалидный токен или URL")
             completion(.failure(NSError(domain: "ProfileImageService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid token or URL"])))

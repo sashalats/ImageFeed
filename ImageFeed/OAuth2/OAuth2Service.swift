@@ -54,8 +54,8 @@ final class OAuth2Service {
         guard let request = makeOAuthTokenRequest(code: code) else {
             print("[OAuth2Service]: Invalid request - не удалось создать URLRequest")
             completion(.failure(OAuth2Error.invalidRequest))
-            self.currentTask = nil
-            self.currentCode = nil
+            currentTask = nil
+            currentCode = nil
             return
         }
         
