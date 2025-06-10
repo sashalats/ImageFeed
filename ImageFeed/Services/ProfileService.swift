@@ -12,7 +12,7 @@ final class ProfileService {
 
 extension ProfileService {
     private func makeProfileRequest() -> URLRequest? {
-        guard let url = URL(string: "https://api.unsplash.com/me"),
+        guard let url = URL(string: Constants.unsplashURLMeString),
               let token = oauth2TokenStorage.token else {
             return nil
         }
