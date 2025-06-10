@@ -17,6 +17,10 @@ enum Constants {
         guard !username.isEmpty else { return nil }
         return defaultBaseURL.appendingPathComponent("users").appendingPathComponent(username)
     }
+    static func likeImage(for photoId: String) -> URL? {
+        guard !photoId.isEmpty else { return nil }
+        return defaultBaseURL.appendingPathComponent("photos").appendingPathComponent(photoId).appendingPathComponent("like")
+    }
     static let unsplashURLPhotosString = "https://api.unsplash.com/photos"
     static let unsplashURLMeString = "https://api.unsplash.com/me"
 }

@@ -72,7 +72,7 @@ final class ImagesListService {
             return
         }
 
-        guard let url = URL(string: "https://api.unsplash.com/photos/\(photoId)/like") else {
+        guard let url = Constants.likeImage(for: photoId) else {
             completion(.failure(NSError(domain: "ImagesListService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
         }
