@@ -6,14 +6,21 @@ protocol WebViewViewControllerDelegate: AnyObject {
     func webViewViewControllerDidCancel(_ vc: WebViewViewController)
 }
 
-final class WebViewViewController:UIViewController {
-    
+public protocol WebViewViewControllerProtocol: AnyObject {
+    var presenter: WebViewPresenterProtocol? { get set }
+    func load(request: URLRequest)
+    func setProgressValue(_ newValue: Float)
+    func setProgressHidden(_ isHidden: Bool)
+}
+
+
+final class WebViewViewController:UIViewController & WebViewViewControllerProtocol {
+    var presenter: WebViewPresenterProtocol?
+
     @IBOutlet private var webView: WKWebView!
     @IBOutlet private var progressView: UIProgressView!
     
-    private enum progressConstants {
-        static let progressCompletionThreshold: CGFloat = 0.0001
-    }
+    
     
     weak var delegate: WebViewViewControllerDelegate?
     private var estimatedProgressObservation: NSKeyValueObservation?
@@ -22,6 +29,7 @@ final class WebViewViewController:UIViewController {
         super.viewDidLoad()
         
         webView.navigationDelegate = self
+        webView.accessibilityIdentifier = "WebViewViewController"
         navigationController?.navigationBar.tintColor = UIColor(named: "YP Black")
         webView.scrollView.keyboardDismissMode = .interactive
         
@@ -30,47 +38,22 @@ final class WebViewViewController:UIViewController {
              options: [],
              changeHandler: { [weak self] _, _ in
                  guard let self = self else { return }
-                 self.updateProgress()
+                 self.presenter?.didUpdateProgressValue(webView.estimatedProgress)
              })
         
         configureBackButton()
-        loadAuthRequest()
-        updateProgress()
+        presenter?.viewDidLoad()
     }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        webView.addObserver(
-            self,
-            forKeyPath: #keyPath(WKWebView.estimatedProgress),
-            options: .new,
-            context: nil)
-        updateProgress()
+    func setProgressValue(_ newValue: Float) {
+        progressView.progress = newValue
     }
-    
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        
-        webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress))
+
+    func setProgressHidden(_ isHidden: Bool) {
+        progressView.isHidden = isHidden
     }
-    
-    override func observeValue(
-        forKeyPath keyPath: String?,
-        of object: Any?,
-        change: [NSKeyValueChangeKey : Any]?,
-        context: UnsafeMutableRawPointer?
-    ) {
-        guard keyPath == #keyPath(WKWebView.estimatedProgress) else {
-            super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
-            return
-        }
-        
-        updateProgress()
-    }
-    
-    private func updateProgress() {
-        progressView.progress = Float(webView.estimatedProgress)
-        progressView.isHidden = fabs(webView.estimatedProgress - 1.0) <= progressConstants.progressCompletionThreshold
+
+    func load(request: URLRequest) {
+        webView.load(request)
     }
     
     private func configureBackButton() {
@@ -86,58 +69,20 @@ final class WebViewViewController:UIViewController {
     @objc private func didTapBackButton() {
         navigationController?.popViewController(animated: true)
     }
-    
-    private func loadAuthRequest() {
-        webView.navigationDelegate = self
-        
-        guard var urlComponents = URLComponents(string: Constants.unsplashAuthorizeURLString) else {
-            print("Не удалость создать URLComponents из строки: \(Constants.unsplashAuthorizeURLString)")
-            return
-        }
-        
-        urlComponents.queryItems = [
-            URLQueryItem(name: "client_id", value: Constants.accessKey),
-            URLQueryItem(name: "redirect_uri", value: Constants.redirectURI),
-            URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "scope", value: Constants.accessScope)
-        ]
-        
-        guard let url = urlComponents.url else {
-            print("Не удалось получить URL из URLComponents: \(urlComponents)")
-            return
-        }
-        
-        print("Финальный URL", url.absoluteString)
-        
-        let request = URLRequest(url: url)
-        webView.load(request)
-    }
 }
 
 extension WebViewViewController: WKNavigationDelegate {
-    private func code(from navigationAction: WKNavigationAction) -> String? {
-        if
-            let url = navigationAction.request.url,
-            let urlComponents = URLComponents(string: url.absoluteString),
-            urlComponents.path == "/oauth/authorize/native",
-            let items = urlComponents.queryItems,
-            let codeItem = items.first(where: { $0.name == "code" })
-        {
-            return codeItem.value
-        } else {
-            return nil
-        }
-    }
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
         decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
     ) {
-        if let code = code(from: navigationAction) {
+        let result = presenter?.shouldAllow(navigationAction: navigationAction)
+        if let code = result?.code {
             delegate?.webViewViewController(self, didAuthenticateWithCode: code)
             decisionHandler(.cancel)
         } else {
-            decisionHandler(.allow)
+            decisionHandler(result?.allow == true ? .allow : .cancel)
         }
     }
 }
