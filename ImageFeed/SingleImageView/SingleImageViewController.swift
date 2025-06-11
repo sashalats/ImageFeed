@@ -1,8 +1,9 @@
 import UIKit
+import Kingfisher
 
 final class SingleImageViewController: UIViewController, UIScrollViewDelegate {
     
-    var image: UIImage? {
+    var imageURL: URL? {
         didSet {
             guard isViewLoaded else { return }
             updateImage()
@@ -25,7 +26,7 @@ final class SingleImageViewController: UIViewController, UIScrollViewDelegate {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         
-        if let image = image {
+        if let image = imageView.image {
             rescaleAndCenterImageInScrollView(image: image)
         }
     }
@@ -35,7 +36,7 @@ final class SingleImageViewController: UIViewController, UIScrollViewDelegate {
     }
     
     @IBAction func didTapShareButton(_ sender: UIButton) {
-        guard let image else { return }
+        guard let image = imageView.image else { return }
         let share = UIActivityViewController(
             activityItems: [image],
             applicationActivities: nil
@@ -57,11 +58,21 @@ final class SingleImageViewController: UIViewController, UIScrollViewDelegate {
     }
     
     private func updateImage() {
-        imageView.image = image
-        if let image = image {
-            imageView.translatesAutoresizingMaskIntoConstraints = true
-            imageView.frame.size = image.size
-            rescaleAndCenterImageInScrollView(image: image)
+        guard let url = imageURL else { return }
+        imageView.kf.indicatorType = .activity
+        UIBlockingProgressHUD.show()
+        imageView.kf.setImage(with: url) { [weak self] result in
+            UIBlockingProgressHUD.dismiss()
+            guard let self else { return }
+            
+            switch result {
+            case .success(let value):
+                self.imageView.translatesAutoresizingMaskIntoConstraints = true
+                self.imageView.frame.size = value.image.size
+                self.rescaleAndCenterImageInScrollView(image: value.image)
+            case .failure:
+                self.showError()
+            }
         }
     }
     
@@ -115,5 +126,18 @@ final class SingleImageViewController: UIViewController, UIScrollViewDelegate {
         } else {
             scrollView.contentInset = insets
         }
+    }
+    private func showError() {
+        let alert = UIAlertController(
+            title: "Что-то пошло не так(",
+            message: "Не удалось войти в систему",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Ок", style: .default) { [weak self] _ in
+            self?.updateImage()
+        })
+        
+        present(alert, animated: true)
     }
 }
