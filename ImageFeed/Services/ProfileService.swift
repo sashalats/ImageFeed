@@ -16,13 +16,13 @@ extension ProfileService {
               let token = oauth2TokenStorage.token else {
             return nil
         }
-
+        
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
     }
-
+    
     public func fetchProfile(completion: @escaping (Result<Profile, Error>) -> Void){
         currentTask?.cancel()
         guard let request = makeProfileRequest(),
@@ -31,17 +31,17 @@ extension ProfileService {
             completion(.failure(NSError(domain: "ProfileService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
         }
-
+        
         let task = URLSession.shared.objectTask(for: request) { [weak self] (result: Result<ProfileResult, Error>) in
             guard let self else { return }
             defer { self.currentTask = nil }
-
+            
             switch result {
             case .success(let profileResult):
                 let profile = Profile(from: profileResult)
                 self.profile = profile
                 completion(.success(profile))
-
+                
                 ProfileImageService.shared.fetchProfileImageURL(username: profile.username) { result in
                     switch result {
                     case .success(let url):

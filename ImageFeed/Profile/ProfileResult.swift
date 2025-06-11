@@ -4,7 +4,7 @@ struct ProfileResult: Codable {
     let lastName: String?
     let bio: String?
     let email: String?
-
+    
     enum CodingKeys: String, CodingKey {
         case username
         case firstName = "first_name"

@@ -9,13 +9,15 @@ final class ImagesList: UIViewController {
     private let imageListService = ImagesListService.shared
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "ShowSingleImage",
+        if segue.identifier == showSingleImageSegueIdentifier,
            let vc = segue.destination as? SingleImageViewController,
            let indexPath = sender as? IndexPath {
             let photo = photos[indexPath.row]
             if let url = URL(string: photo.largeImageURL) {
                 vc.imageURL = url
             }
+        } else {
+            assertionFailure("[ImagesList] - Invalid segue destination")
         }
     }
     
@@ -31,6 +33,7 @@ final class ImagesList: UIViewController {
             object: nil
         )
     }
+    
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         if photos.isEmpty, tableView.window != nil {
@@ -39,13 +42,22 @@ final class ImagesList: UIViewController {
     }
 
     @objc private func updateTableViewAnimated(notification: Notification) {
+        let allPhotos = imageListService.photos
+        let existingIds = Set(photos.map { $0.id })
+        let newUniquePhotos = allPhotos.filter { !existingIds.contains($0.id) }
+
+        guard !newUniquePhotos.isEmpty else { return }
+
         let oldCount = photos.count
-        photos = imageListService.photos
+        photos.append(contentsOf: newUniquePhotos)
         let newCount = photos.count
 
         if newCount > oldCount {
             let indexPaths = (oldCount..<newCount).map { IndexPath(row: $0, section: 0) }
             tableView.performBatchUpdates {
+                print("Old count: \(oldCount), New count: \(newCount)")
+                let newPhotoIds = photos[oldCount..<newCount].map { $0.id }
+                print("New photo IDs: \(newPhotoIds)")
                 tableView.insertRows(at: indexPaths, with: .automatic)
             }
         }
@@ -58,6 +70,8 @@ final class ImagesList: UIViewController {
     
     private lazy var dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.dateFormat = "d MMMM yyyy"
+        formatter.locale = Locale(identifier: "ru_RU")
         formatter.dateStyle = .long
         formatter.timeStyle = .none
         return formatter
@@ -115,7 +129,7 @@ extension ImagesList: UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "ShowSingleImage", sender: indexPath)
+        performSegue(withIdentifier: showSingleImageSegueIdentifier, sender: indexPath)
     }
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         let photo = photos[indexPath.row]
@@ -134,12 +148,12 @@ extension ImagesList: ImagesListCellDelegate {
     func imageListCellDidTapLike(_ cell: ImagesListCell) {
         guard let indexPath = tableView.indexPath(for: cell) else { return }
         let photo = photos[indexPath.row]
-
+        
         UIBlockingProgressHUD.show()
         imageListService.changeLike(photoId: photo.id, isLike: !photo.isLiked) { [weak self] result in
             DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
                 UIBlockingProgressHUD.dismiss()
+                guard let self = self else { return }
                 switch result {
                 case .success:
                     if let cell = self.tableView.cellForRow(at: indexPath) as? ImagesListCell {
@@ -157,4 +171,5 @@ extension ImagesList: ImagesListCellDelegate {
                 }
             }
         }
-    }}
+    }
+}

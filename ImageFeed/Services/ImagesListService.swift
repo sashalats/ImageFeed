@@ -10,16 +10,20 @@ final class ImagesListService {
     private var lastLoadedPage: Int?
     private var currentTask: URLSessionTask?
     private let oauth2TokenStorage = OAuth2TokenStorage.shared
-
+    
+    private static let dateFormatter: ISO8601DateFormatter = {
+        ISO8601DateFormatter()
+    }()
+    
     func updatePhoto(at index: Int, with photo: Photo) {
         guard photos.indices.contains(index) else { return }
         photos[index] = photo
         NotificationCenter.default.post(name: ImagesListService.didChangeNotification, object: self)
     }
-
+    
     func fetchPhotosNextPage() {
         guard currentTask == nil else { return }
-
+        
         let nextPage = (lastLoadedPage ?? 0) + 1
         guard let token = oauth2TokenStorage.token else {
             print("[ImagesListService] - Токен не найден")
@@ -31,31 +35,34 @@ final class ImagesListService {
             URLQueryItem(name: "page", value: String(nextPage)),
             URLQueryItem(name: "per_page", value: "10")
         ]
-
+        
         var request = URLRequest(url: urlComponents.url!)
-        request.httpMethod = "GET"
+        request.httpMethod = HTTPMethod.get.rawValue
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
+        
         currentTask = URLSession.shared.objectTask(for: request) { [weak self] (result: Result<[PhotoResult], Error>) in
             guard let self else { return }
             defer { self.currentTask = nil }
-
+            
             switch result {
             case .success(let photoResults):
                 let newPhotos = photoResults.map {
                     Photo(
                         id: $0.id,
                         size: CGSize(width: $0.width, height: $0.height),
-                        createdAt: ISO8601DateFormatter().date(from: $0.createdAt ?? ""),
+                        createdAt: ImagesListService.dateFormatter.date(from: $0.createdAt ?? ""),
                         welcomeDescription: $0.description,
                         thumbImageURL: $0.urls.thumb,
                         largeImageURL: $0.urls.full,
                         isLiked: $0.likedByUser
                     )
                 }
-
+                
+                let existingIds = Set(self.photos.map { $0.id })
+                let uniqueNewPhotos = newPhotos.filter { !existingIds.contains($0.id) }
+                
                 DispatchQueue.main.async {
-                    self.photos.append(contentsOf: newPhotos)
+                    self.photos.append(contentsOf: uniqueNewPhotos)
                     self.lastLoadedPage = nextPage
                     NotificationCenter.default.post(name: ImagesListService.didChangeNotification, object: self)
                 }
@@ -71,16 +78,16 @@ final class ImagesListService {
             completion(.failure(NSError(domain: "ImagesListService", code: -1, userInfo: [NSLocalizedDescriptionKey: "No token available"])))
             return
         }
-
+        
         guard let url = Constants.likeImage(for: photoId) else {
             completion(.failure(NSError(domain: "ImagesListService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
         }
-
+        
         var request = URLRequest(url: url)
-        request.httpMethod = isLike ? "POST" : "DELETE"
+        request.httpMethod = isLike ? HTTPMethod.post.rawValue : HTTPMethod.delete.rawValue
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
+        
         let task = URLSession.shared.dataTask(with: request) { [weak self] _, response, error in
             guard let self = self else { return }
             DispatchQueue.main.async {
@@ -88,12 +95,12 @@ final class ImagesListService {
                     completion(.failure(error))
                     return
                 }
-
+                
                 guard let httpResponse = response as? HTTPURLResponse else {
                     completion(.failure(NSError(domain: "ImagesListService", code: -1, userInfo: [NSLocalizedDescriptionKey: "No response"])))
                     return
                 }
-
+                
                 if 200..<300 ~= httpResponse.statusCode {
                     if let index = self.photos.firstIndex(where: { $0.id == photoId }) {
                         let photo = self.photos[index]
@@ -120,4 +127,5 @@ final class ImagesListService {
             }
         }
         task.resume()
-    }}
+    }
+}

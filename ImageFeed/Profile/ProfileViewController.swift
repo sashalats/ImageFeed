@@ -248,12 +248,9 @@ final class ProfileViewController: UIViewController {
 
                 switch result {
                 case .success:
-                    // Удаляем градиент с аватара
                     self.avatarImageView.layer.sublayers?.removeAll(where: { $0 is CAGradientLayer })
-                    // Аватарка загружена — градиент больше не нужен
                     break
                 case .failure:
-                    // В случае ошибки можно снова добавить градиент
                     let gradient = self.makeAvatarGradient()
                     self.avatarImageView.layer.addSublayer(gradient)
                     self.animationLayers.insert(gradient)
@@ -263,7 +260,6 @@ final class ProfileViewController: UIViewController {
     }
     
     private func updateProfileDetails(profile: Profile) {
-        // Удаляем все градиенты
         animationLayers.forEach { $0.removeFromSuperlayer() }
         animationLayers.removeAll()
         nameLabel.text = profile.name
