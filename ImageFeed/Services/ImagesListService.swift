@@ -22,6 +22,7 @@ final class ImagesListService {
     }
     
     func fetchPhotosNextPage() {
+        print("[ImagesListService] → fetchPhotosNextPage вызван")
         guard currentTask == nil else { return }
         
         let nextPage = (lastLoadedPage ?? 0) + 1
@@ -36,7 +37,11 @@ final class ImagesListService {
             URLQueryItem(name: "per_page", value: "10")
         ]
         
-        var request = URLRequest(url: urlComponents.url!)
+        guard let url = urlComponents.url else {
+            print("[ImagesListService] - Ошибка создания URL")
+            return
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.get.rawValue
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
