@@ -69,6 +69,7 @@ final class ImagesListPresenter: ImagesListPresenterProtocol {
     }
 
     func didSelectRow(at index: Int) {
+        // do nothing
     }
 
     func willDisplayCell(at index: Int) {

@@ -113,8 +113,8 @@ extension ProfileViewController: ProfileViewProtocol {
         }
         animationLayers.removeAll()
 
-        guard let url = url else { return }
-
+        guard let url else { return }
+        
         UIBlockingProgressHUD.show()
         avatarImageView.kf.setImage(with: url) { [weak self] result in
             guard let self = self else { return }

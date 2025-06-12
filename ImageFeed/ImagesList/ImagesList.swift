@@ -88,6 +88,9 @@ extension ImagesList: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if ProcessInfo.processInfo.arguments.contains("testMode"){
+            return
+        }
         presenter?.willDisplayCell(at: indexPath.row)
     }
 

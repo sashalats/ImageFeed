@@ -16,7 +16,7 @@ public protocol WebViewViewControllerProtocol: AnyObject {
 
 final class WebViewViewController:UIViewController & WebViewViewControllerProtocol {
     var presenter: WebViewPresenterProtocol?
-
+    private let accessibilityIdentifier = "WebViewViewController"
     @IBOutlet private var webView: WKWebView!
     @IBOutlet private var progressView: UIProgressView!
     
@@ -29,7 +29,7 @@ final class WebViewViewController:UIViewController & WebViewViewControllerProtoc
         super.viewDidLoad()
         
         webView.navigationDelegate = self
-        webView.accessibilityIdentifier = "WebViewViewController"
+        webView.accessibilityIdentifier = accessibilityIdentifier
         navigationController?.navigationBar.tintColor = UIColor(named: "YP Black")
         webView.scrollView.keyboardDismissMode = .interactive
         
@@ -37,7 +37,7 @@ final class WebViewViewController:UIViewController & WebViewViewControllerProtoc
             \.estimatedProgress,
              options: [],
              changeHandler: { [weak self] _, _ in
-                 guard let self = self else { return }
+                 guard let self else { return }
                  self.presenter?.didUpdateProgressValue(webView.estimatedProgress)
              })
         

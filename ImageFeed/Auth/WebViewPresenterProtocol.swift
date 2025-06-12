@@ -33,11 +33,11 @@ final class WebViewPresenter: WebViewPresenterProtocol {
     func didUpdateProgressValue(_ newValue: Double) {
         let progress = Float(newValue)
         view?.setProgressValue(progress)
-        view?.setProgressHidden(abs(progress - 1.0) <= 0.0001)
+        view?.setProgressHidden(abs(CGFloat(progress) - 1.0) <= progressConstants.progressCompletionThreshold)
     }
 
     func code(from url: URL) -> String? {
-        return authHelper.code(from: url)
+        authHelper.code(from: url)
     }
 
     func shouldAllow(navigationAction: WKNavigationAction) -> (code: String?, allow: Bool) {
